@@ -1,0 +1,1236 @@
+<template>
+<div class="contenedor-pagina">
+  <div class="titulo">
+    <h1>Brawlers</h1>
+    <h3>COMBAT FLAVOR</h3>
+  </div>
+
+  <div class="contenedor-principal" :class="{ 'con-carrito': carritoItems.length > 0 }">
+    <!-- Panel izquierdo: Menú/Comidas (80% o 100% si no hay carrito) -->
+    <div class="panel-comidas">
+      <div v-if="vistaActual === 'menu'" class="menu">
+        <div class="ficha" @click="abrirCategoria('hamburguesas')">
+          <img :src="hamburguesaImg" alt="logo hamburguesas">
+        </div>
+        <div class="ficha" @click="abrirCategoria('perros')">
+          <img :src="Perros" alt="logo perros">
+        </div>
+        <div class="ficha" @click="abrirCategoria('salchipapas')">
+          <img :src="Salchipapas" alt="logo salchipapas">
+        </div>
+        <div class="ficha" @click="abrirCategoria('choripapas')">
+          <img :src="Choripapas" alt="logo choripapas">
+        </div>
+        <div class="ficha" @click="abrirCategoria('infantil')">
+          <img :src="Infantil" alt="Logo infantil">
+        </div>
+        <div class="ficha" @click="abrirCategoria('adicionales')">
+          <img :src="Adicionales" alt="Logo adicionales">
+        </div>
+      </div>
+
+      <div v-else-if="vistaActual === 'detalle'" class="vista-detalle">
+        <div class="cabecera-detalle">
+          <button class="btn-volver" @click="volverAlMenu">Volver</button>
+          <h2 class="titulo-categoria">{{ categoriaSeleccionada.toUpperCase() }}</h2>
+        </div>
+
+        <div class="lista-comidas">
+          <div class="item-comida" v-for="(item, index) in menuData[categoriaSeleccionada]" :key="index">
+            <div class="imagen-comida">
+              <img :src="item.imagen" :alt="item.nombre">
+            </div>
+            
+            <div class="info-comida">
+              <h3>{{ item.nombre }}</h3>
+              <p>{{ item.descripcion }}</p>
+            </div>
+            <div class="precio-comida">
+              <span>{{ formatearPrecio(item.precio) }}</span>
+              <button class="btn-agregar" @click="agregarAlCarrito(item)">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel derecho: Carrito (20%, solo visible cuando hay items) -->
+    <div v-if="carritoItems.length > 0" class="panel-carrito">
+      <div class="cabecera-carrito">
+        <h2 class="titulo-carrito">MI PEDIDO</h2>
+        <button class="btn-cerrar-carrito" @click="vaciarCarrito">🗑️</button>
+      </div>
+
+      <div class="lista-carrito">
+        <div class="item-carrito" v-for="(item, idx) in carritoItems" :key="idx">
+          <div class="info-carrito">
+            <h4>{{ item.nombre }}</h4>
+            <p class="precio-item">{{ formatearPrecio(item.precio) }}</p>
+          </div>
+          <button class="btn-eliminar" @click="eliminarDelCarrito(idx)">✖</button>
+        </div>
+      </div>
+
+      <div class="total-carrito">
+        <h3>Total: {{ formatearPrecio(calcularTotal()) }}</h3>
+        <button class="btn-confirmar" @click="confirmarPedido">✅ CONFIRMAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de factura para impresión -->
+  <div v-if="mostrarFactura" class="modal-factura" @click.self="cerrarFactura">
+    <div class="contenido-factura">
+      <div class="factura">
+        <!-- Cabecera de factura -->
+        <div class="factura-header">
+          <h2>BRAWLERS</h2>
+          <p>COMBAT FLAVOR</p>
+          <p class="factura-fecha">{{ obtenerFechaHora() }}</p>
+        </div>
+
+        <!-- Detalle del pedido -->
+        <div class="factura-detalle">
+          <table class="tabla-factura">
+            <thead>
+              <tr>
+                <th>Cant.</th>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in carritoItems" :key="idx">
+                <td class="cantidad">1</td>
+                <td class="producto">{{ item.nombre }}</td>
+                <td class="precio">{{ formatearPrecio(item.precio) }}</td>
+                <td class="total">{{ formatearPrecio(item.precio) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Totales -->
+        <div class="factura-totales">
+          <div class="linea-total">
+            <span>SUBTOTAL:</span>
+            <span>{{ formatearPrecio(calcularTotal()) }}</span>
+          </div>
+          <div class="linea-total">
+            <span>IVA (0%):</span>
+            <span>$0</span>
+          </div>
+          <div class="linea-total total-final">
+            <span>TOTAL:</span>
+            <span>{{ formatearPrecio(calcularTotal()) }}</span>
+          </div>
+        </div>
+
+        <!-- Footer de factura -->
+        <div class="factura-footer">
+          <p>¡Gracias por tu compra!</p>
+          <p class="factura-legal">Este documento es una factura válida</p>
+        </div>
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="botones-factura">
+        <button class="btn-cerrar-factura" @click="cerrarFactura">✖ CERRAR</button>
+        <button class="btn-imprimir-factura" @click="imprimirFactura">🖨️ IMPRIMIR</button>
+      </div>
+    </div>
+  </div>
+</div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+// Imports de imágenes de categorías (logos)
+import hamburguesaImg from './assets/Hamburguesas.png';
+import Perros from './assets/Perros.png';
+import Salchipapas from './assets/Salchipapas.png';
+import Choripapas from './assets/Choripapas.png';
+import Infantil from './assets/Infantil.png';
+import Adicionales from './assets/Adicionales.png';
+
+const vistaActual = ref('menu'); 
+const categoriaSeleccionada = ref(''); 
+const carritoItems = ref([]);
+const mostrarFactura = ref(false);
+
+const menuData = {
+  hamburguesas: [
+    { 
+      nombre: "The Pit Burger", 
+      descripcion: "Carne de res 150g, queso cheddar derretido, tocineta crispy, salsa Riot Zone.", 
+      precio: 25000,
+      imagen: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400&h=300&fit=crop"
+    },
+    { 
+      nombre: "Knockout Sencilla", 
+      descripcion: "Carne de res 150g, queso mozzarella, lechuga fresca, tomate y salsa de ajo.", 
+      precio: 18000,
+      imagen: "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?w=400&h=300&fit=crop"
+    },
+    { 
+      nombre: "Doble Impacto", 
+      descripcion: "Doble carne, doble queso cheddar, aros de cebolla y salsa BBQ picante.", 
+      precio: 32000,
+      imagen: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=400&h=300&fit=crop"
+    },
+    { 
+      nombre: "La Callejera", 
+      descripcion: "Carne, huevo frito, ripio de papa, queso, tocineta y salsa rosada.", 
+      precio: 22000,
+      imagen: "https://www.carniceriademadrid.es/wp-content/uploads/2022/09/smash-burger-que-es.jpg"
+    },
+    { 
+      nombre: "Chicken Uppercut", 
+      descripcion: "Pechuga apanada extra crujiente, ensalada coleslaw, pepinillos y mayonesa.", 
+      precio: 20000,
+      imagen: "https://media.istockphoto.com/id/521207406/es/foto/pa%C3%ADs-de-pollo-frito-s%C3%A1ndwich-del-sur.jpg?s=612x612&w=0&k=20&c=pE3vvzFCtdXMa_IsDAa-n7vUE6mFf_sYXnqe9VI7FxQ="
+    }
+  ],
+  perros: [
+    { 
+      nombre: "Perro Callejero", 
+      descripcion: "Salchicha americana, ripio, queso costeño, salsas tradicionales.", 
+      precio: 12000,
+      imagen: "https://ranchera.com.co/wp-content/uploads/2022/11/perro-colombiano-1.jpg"
+    },
+    { 
+      nombre: "El Suizo Brawler", 
+      descripcion: "Salchicha suiza, extra queso fundido, tocineta picada y salsa piña.", 
+      precio: 16000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRpySyVh9EalDnNLU9u8PxafOPLeRBM1us0ow&s"
+    },
+    { 
+      nombre: "Perro Mexicano", 
+      descripcion: "Salchicha, guacamole, jalapeños, pico de gallo y nachos triturados.", 
+      precio: 18000,
+      imagen: "https://hamburguesaspecadocapital.com/wp-content/uploads/2023/10/Perro-caliente-optimizada-web.jpg"
+    },
+    { 
+      nombre: "El Salvaje", 
+      descripcion: "Doble salchicha, carne desmechada, queso mozzarella y maíz tierno.", 
+      precio: 20000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSPkTOhi2JjJs2tstiwSsudL869p46su5fJAw&s"
+    },
+    { 
+      nombre: "Perro Chori", 
+      descripcion: "Chorizo de ternera en pan artesanal, chimichurri y queso fundido.", 
+      precio: 17000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqZiWdcRYT_GS-y2A7fZUCCtBNNi_0IWVZsw&s"
+    }
+  ],
+  salchipapas: [
+    { 
+      nombre: "Salchipapa Sencilla", 
+      descripcion: "Papas a la francesa, salchicha tradicional, queso rallado y salsa rosada.", 
+      precio: 14000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwC6GGQhB_1d0wljn9UpnzoL8DzL5obi4JYA&s"
+    },
+    { 
+      nombre: "La Especial", 
+      descripcion: "Papas, salchicha premium, pollo desmechado, tocineta y queso fundido.", 
+      precio: 22000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJfr2m_Yhvy-rYQ-6FxvNmcKVuV6q6DbTAZw&s"
+    },
+    { 
+      nombre: "Brawlers Salvaje", 
+      descripcion: "Papas, salchicha, carne desmechada, maíz, maduritos y triple queso.", 
+      precio: 28000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQROcvqsD9ATOFl9HJWMQiHdwAnMv9Inl7XGA&s"
+    },
+    { 
+      nombre: "La Costeña", 
+      descripcion: "Papas, salchicha, butifarra, suero costeño y queso costeño rallado.", 
+      precio: 20000,
+      imagen: "https://cloudfront-us-east-1.images.arcpublishing.com/infobae/EJLJ24LK3JAIRENLK63SULNRE4.jpg"
+    },
+    { 
+      nombre: "Salchipapa BBQ", 
+      descripcion: "Papas, salchicha bañada en salsa BBQ, cebolla caramelizada y tocineta.", 
+      precio: 18000,
+      imagen: "https://cloudfront-us-east-1.images.arcpublishing.com/infobae/CRU7IWBQBVBWTDZT2AZFIXREVI.jpg"
+    }
+  ],
+  choripapas: [
+    { 
+      nombre: "Choripapa Clásica", 
+      descripcion: "Papas crujientes, chorizo antioqueño picado, queso y salsas.", 
+      precio: 16000,
+      imagen: "https://images.rappi.com/products/1689265490533_09c37fe2-51d3-48d2-a180-b4630acb8d35_salchipapaespecial.jpg"
+    },
+    { 
+      nombre: "Choripapa Picante", 
+      descripcion: "Papas, chorizo santandereano, jalapeños y salsa de ají casero.", 
+      precio: 18000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQB_U_8hu-aAaAeM6sM0Uy8GOQfAbZvW-WGwQ&s"
+    },
+    { 
+      nombre: "La Quesuda", 
+      descripcion: "Papas, chorizo, bañada en una piscina de queso cheddar y mozzarella.", 
+      precio: 20000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRoWQIMxaHrzmxruzQIzx2EJar2MUZhYGtVdA&s"
+    },
+    { 
+      nombre: "Chori-Maíz", 
+      descripcion: "Papas, chorizo premium, extra maíz dulce, queso y salsa tártara.", 
+      precio: 19000,
+      imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRlifsnsicv4dcSV44PXCToYrCh59mH_u-Vrw&s"
+    },
+    { 
+      nombre: "Mix Brawler", 
+      descripcion: "Papas, chorizo, morcilla picada, arepita frita y hogao.", 
+      precio: 24000,
+      imagen: "https://images.rappi.com/restaurants_background/480d989a-6804-4a8c-b9f5-6705c2eee766-1686176390144.png"
+    }
+  ],
+  infantil: [
+    { 
+      nombre: "Mini Brawler", 
+      descripcion: "Mini hamburguesa con queso y papitas francesas carita.", 
+      precio: 15000,
+      imagen: "https://tse3.mm.bing.net/th/id/OIP.PviqYWk3K39oAQb03Ax64QHaE7?rs=1&pid=ImgDetMain&o=7&rm=3"
+    },
+    { 
+      nombre: "Nuggets de Combate", 
+      descripcion: "6 Nuggets de pollo crujientes acompañados de papas francesas.", 
+      precio: 14000,
+      imagen: "https://media.a24.com/p/1c69800fa693ed7b3cf2b251644cd8f2/adjuntos/296/imagenes/008/951/0008951716/1200x675/smart/papas-fritas_nuggetsjpg.jpg"
+    },
+    { 
+      nombre: "Salchi-Kids", 
+      descripcion: "Porción pequeña de papas con salchicha en rodajas sin salsas fuertes.", 
+      precio: 12000,
+      imagen: "https://www.seriouseats.com/thmb/mrIC6LF4KWf5dltOBEVBQoMqR04=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/20220131-salchipapas-vicky-wasik-15-f01dcb79a9f84bcd909845a1a101a962.jpg"
+    },
+    { 
+      nombre: "Mini Perrito", 
+      descripcion: "Perrito caliente sencillo con salsa de tomate y papitas.", 
+      precio: 10000,
+      imagen: "https://tse2.mm.bing.net/th/id/OIP.4dOSoNv4m3g2IZsNMG2HUAHaE7?rs=1&pid=ImgDetMain&o=7&rm=3"
+    },
+    { 
+      nombre: "Nachos Quesudos", 
+      descripcion: "Porción de nachos bañados en queso cheddar suave (sin picante).", 
+      precio: 12000,
+      imagen: "https://img.taste.com.au/O_5e5BxC/taste/2016/11/tray-baked-nachos-102903-1.jpeg"
+    }
+  ],
+  adicionales: [
+    { 
+      nombre: "Porción de Papas", 
+      descripcion: "Papas a la francesa extra crujientes condimentadas estilo Brawlers.", 
+      precio: 6000,
+      imagen: "https://tse3.mm.bing.net/th/id/OIP.Jdss4SOTKHXFpShDsBNEngHaE7?rs=1&pid=ImgDetMain&o=7&rm=3"
+    },
+    { 
+      nombre: "Porción de Carne", 
+      descripcion: "Porción de carne de res o pollo desmechado para sumar a tus platos.", 
+      precio: 8000,
+      imagen: "https://tse2.mm.bing.net/th/id/OIP.8_3U1vH5LhvNmRpmemQG2AHaEk?rs=1&pid=ImgDetMain&o=7&rm=3"
+    },
+    { 
+      nombre: "Nachos con Cheddar", 
+      descripcion: "Porción personal de nachos crujientes con dip de queso cheddar.", 
+      precio: 7000,
+      imagen: "https://tse2.mm.bing.net/th/id/OIP.dpzMkrEs6mahq1-Fxd5BLAHaE8?rs=1&pid=ImgDetMain&o=7&rm=3"
+    },
+    { 
+      nombre: "Adición de Tocineta", 
+      descripcion: "Trocitos de tocineta ahumada crujiente.", 
+      precio: 4000,
+      imagen: "https://tse3.mm.bing.net/th/id/OIP.5mOXkXujI_cKGt8eSWAG9AHaEA?rs=1&pid=ImgDetMain&o=7&rm=3"
+    },
+    { 
+      nombre: "Baño de Queso", 
+      descripcion: "Extra de queso cheddar fundido para bañar cualquiera de tus platos.", 
+      precio: 5000,
+      imagen: "https://tse4.mm.bing.net/th/id/OIP.SLj1H4UdGTrtLZccwuB59wHaHQ?rs=1&pid=ImgDetMain&o=7&rm=3"
+    }
+  ]
+};
+
+const formatearPrecio = (precio) => {
+  return `$${precio.toLocaleString()}`;
+};
+
+const abrirCategoria = (categoria) => {
+  categoriaSeleccionada.value = categoria;
+  vistaActual.value = 'detalle';
+};
+
+const volverAlMenu = () => {
+  vistaActual.value = 'menu';
+  categoriaSeleccionada.value = '';
+};
+
+const agregarAlCarrito = (item) => {
+  carritoItems.value.push({ ...item });
+};
+
+const eliminarDelCarrito = (index) => {
+  carritoItems.value.splice(index, 1);
+};
+
+const vaciarCarrito = () => {
+  if (confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
+    carritoItems.value = [];
+  }
+};
+
+const calcularTotal = () => {
+  return carritoItems.value.reduce((sum, item) => sum + item.precio, 0);
+};
+
+const confirmarPedido = () => {
+  mostrarFactura.value = true;
+};
+
+const obtenerFechaHora = () => {
+  const ahora = new Date();
+  return ahora.toLocaleString('es-CO', {
+    dateStyle: 'full',
+    timeStyle: 'medium'
+  });
+};
+
+const cerrarFactura = () => {
+  mostrarFactura.value = false;
+  carritoItems.value = [];
+  volverAlMenu();
+};
+
+const imprimirFactura = () => {
+  const contenido = document.querySelector('.factura').cloneNode(true);
+  const ventana = window.open('', '_blank');
+  
+  ventana.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Factura Brawlers</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+          font-family: 'Courier New', 'Segoe UI', monospace;
+          background: white;
+          padding: 20px;
+          display: flex;
+          justify-content: center;
+        }
+        .factura {
+          max-width: 400px;
+          width: 100%;
+          background: white;
+          padding: 20px;
+          border: 1px solid #ddd;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .factura-header {
+          text-align: center;
+          border-bottom: 2px solid #333;
+          padding-bottom: 15px;
+          margin-bottom: 20px;
+        }
+        .factura-header h2 {
+          font-size: 24px;
+          letter-spacing: 3px;
+          margin-bottom: 5px;
+        }
+        .factura-fecha {
+          font-size: 11px;
+          color: #666;
+          margin-top: 8px;
+        }
+        .tabla-factura {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        .tabla-factura th {
+          text-align: left;
+          border-bottom: 1px solid #ddd;
+          padding: 8px 0;
+          font-size: 12px;
+        }
+        .tabla-factura td {
+          padding: 8px 0;
+          font-size: 12px;
+          border-bottom: 1px solid #eee;
+        }
+        .cantidad {
+          width: 50px;
+          text-align: center;
+        }
+        .producto {
+          text-align: left;
+        }
+        .precio, .total {
+          text-align: right;
+          width: 80px;
+        }
+        .factura-totales {
+          text-align: right;
+          border-top: 2px solid #333;
+          padding-top: 15px;
+          margin-bottom: 20px;
+        }
+        .linea-total {
+          display: flex;
+          justify-content: flex-end;
+          margin-bottom: 5px;
+          font-size: 12px;
+        }
+        .linea-total span:first-child {
+          width: 100px;
+          text-align: left;
+        }
+        .linea-total span:last-child {
+          width: 100px;
+          text-align: right;
+        }
+        .total-final {
+          font-size: 16px;
+          font-weight: bold;
+          margin-top: 10px;
+          padding-top: 5px;
+          border-top: 1px solid #ddd;
+        }
+        .factura-footer {
+          text-align: center;
+          border-top: 1px solid #ddd;
+          padding-top: 15px;
+          font-size: 11px;
+          color: #666;
+        }
+        .factura-legal {
+          font-size: 9px;
+          margin-top: 5px;
+        }
+        @media print {
+          body {
+            padding: 0;
+          }
+          .factura {
+            box-shadow: none;
+            border: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      ${contenido.outerHTML}
+      <script>
+        window.onload = () => {
+          window.print();
+          setTimeout(() => window.close(), 1000);
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+  
+  ventana.document.close();
+};
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Creepster&family=Rubik+Distressed&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #000000;
+  font-family: 'Creepster', cursive;
+}
+
+.contenedor-pagina {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  padding: 10px; 
+  box-sizing: border-box; 
+  overflow: hidden;
+}
+
+.titulo {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  height: 15vh; 
+  margin-bottom: 10px; 
+  flex-shrink: 0;
+}
+
+.titulo h1 {
+  color: #ffffffd5;
+  letter-spacing: 20px;
+  font-family: 'Creepster', cursive;
+  text-transform: uppercase;
+  font-size: 80px;
+  text-shadow: 5px 5px 5px #ff4500;
+  margin: 0;
+}
+
+.titulo h3 {
+  color: #d3703b;
+  font-size: 1.5rem;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.contenedor-principal {
+  display: flex;
+  flex: 1;
+  gap: 15px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel-comidas {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.con-carrito .panel-comidas {
+  flex: 8;
+}
+
+.panel-carrito {
+  flex: 2;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  border-radius: 12px;
+  border: 1px solid #ff4500;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cabecera-carrito {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #ff4500;
+  border-bottom: 2px solid #cc3700;
+}
+
+.titulo-carrito {
+  color: white;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  margin: 0;
+  text-shadow: 2px 2px 2px rgba(0,0,0,0.5);
+}
+
+.btn-cerrar-carrito {
+  background-color: rgba(0,0,0,0.5);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.btn-cerrar-carrito:active {
+  background-color: rgba(0,0,0,0.8);
+  transform: scale(0.95);
+}
+
+.menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); 
+  grid-template-rows: repeat(3, 1fr); 
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.ficha {
+  position: relative; 
+  display: flex;
+  justify-content: center; 
+  align-items: center;
+  border: 2px solid #ff4500;
+  border-radius: 12px; 
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 300px;
+}
+
+.ficha:active {
+  transform: scale(0.95);
+  box-shadow: 0 0 15px rgba(255, 69, 0, 0.7);
+}
+
+.ficha img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; 
+  object-position: center;
+  z-index: 1; 
+}
+
+.vista-detalle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #000000;
+  border-radius: 8px;
+  border: 1px solid #333;
+  padding: 15px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.cabecera-detalle {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #ff4500;
+  padding-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.cabecera-detalle h2 {
+  font-family: 'Creepster', cursive;
+}
+
+.btn-volver {
+  background-color: #ff4500;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-right: 15px;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+  font-family: 'Creepster', cursive;
+  font-size: 20px;
+  letter-spacing: 3px;
+}
+
+.btn-volver:active {
+  background-color: #cc3700;
+}
+
+.titulo-categoria {
+  color: #ffffff;
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  text-shadow: 0px 0px 5px rgba(255, 69, 0, 0.8);
+}
+
+.lista-comidas {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.imagen-comida {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  border: 2px solid #ff4500;
+  box-shadow: 0 0 10px rgba(255, 69, 0, 0.3);
+}
+
+.imagen-comida img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.item-comida {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background-color: #262626;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #ff4500;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item-comida:hover {
+  transform: translateX(5px);
+  box-shadow: 0 0 15px rgba(255, 69, 0, 0.2);
+}
+
+.item-comida:hover .imagen-comida img {
+  transform: scale(1.1);
+}
+
+.info-comida {
+  flex: 1;
+}
+
+.info-comida h3 {
+  color: #ffb84d;
+  margin: 0 0 5px 0;
+  font-size: 1.2rem;
+}
+
+.info-comida p {
+  color: #bfbfbf;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.precio-comida {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.precio-comida span {
+  color: #ff4500;
+  font-weight: bold;
+  font-size: 1.3rem;
+  background-color: #000000;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 2px solid #ff4500;
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+
+.btn-agregar {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s;
+  flex-shrink: 0;
+}
+
+.btn-agregar:active {
+  transform: scale(0.9);
+}
+
+.lista-carrito {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 15px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.item-carrito {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #262626;
+  padding: 10px;
+  border-radius: 8px;
+  border-left: 3px solid #ff4500;
+}
+
+.info-carrito {
+  flex: 1;
+}
+
+.info-carrito h4 {
+  margin: 0 0 5px 0;
+  color: #ffb84d;
+  font-size: 0.9rem;
+}
+
+.precio-item {
+  margin: 0;
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.btn-eliminar {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.btn-eliminar:active {
+  background-color: #c82333;
+  transform: scale(0.95);
+}
+
+.total-carrito {
+  padding: 15px;
+  background-color: #1a1a1a;
+  border-top: 2px solid #ff4500;
+  text-align: center;
+}
+
+.total-carrito h3 {
+  color: #ffb84d;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.btn-confirmar {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.btn-confirmar:active {
+  background-color: #218838;
+  transform: scale(0.98);
+}
+
+/* Estilos del modal de factura */
+.modal-factura {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.contenido-factura {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Estilos NEUTROS de la factura (para impresión) */
+.factura {
+  background: white;
+  color: #000000;
+  font-family: 'Courier New', 'Segoe UI', monospace;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.factura-header {
+  text-align: center;
+  border-bottom: 2px solid #333333;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.factura-header h2 {
+  font-size: 24px;
+  letter-spacing: 3px;
+  margin-bottom: 5px;
+  color: #000000;
+  font-weight: bold;
+}
+
+.factura-header p {
+  color: #555555;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.factura-fecha {
+  font-size: 11px;
+  color: #666666;
+  margin-top: 8px;
+}
+
+.tabla-factura {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.tabla-factura th {
+  text-align: left;
+  border-bottom: 1px solid #dddddd;
+  padding: 8px 0;
+  font-size: 12px;
+  color: #333333;
+}
+
+.tabla-factura td {
+  padding: 8px 0;
+  font-size: 12px;
+  border-bottom: 1px solid #eeeeee;
+  color: #000000;
+}
+
+.tabla-factura .cantidad {
+  width: 50px;
+  text-align: center;
+}
+
+.tabla-factura .producto {
+  text-align: left;
+}
+
+.tabla-factura .precio,
+.tabla-factura .total {
+  text-align: right;
+  width: 80px;
+}
+
+.factura-totales {
+  text-align: right;
+  border-top: 2px solid #333333;
+  padding-top: 15px;
+  margin-bottom: 20px;
+}
+
+.linea-total {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: #333333;
+}
+
+.linea-total span:first-child {
+  width: 100px;
+  text-align: left;
+}
+
+.linea-total span:last-child {
+  width: 100px;
+  text-align: right;
+}
+
+.total-final {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 10px;
+  padding-top: 5px;
+  border-top: 1px solid #dddddd;
+  color: #000000;
+}
+
+.factura-footer {
+  text-align: center;
+  border-top: 1px solid #dddddd;
+  padding-top: 15px;
+  font-size: 11px;
+  color: #666666;
+}
+
+.factura-legal {
+  font-size: 9px;
+  margin-top: 5px;
+}
+
+/* Botones del modal */
+.botones-factura {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eeeeee;
+}
+
+.btn-cerrar-factura,
+.btn-imprimir-factura {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.btn-cerrar-factura {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-cerrar-factura:hover {
+  background-color: #5a6268;
+}
+
+.btn-imprimir-factura {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-imprimir-factura:hover {
+  background-color: #218838;
+}
+
+/* Estilos para impresión */
+@media print {
+  .modal-factura {
+    position: static;
+    background: white;
+  }
+  
+  .contenido-factura {
+    padding: 0;
+    max-width: 100%;
+  }
+  
+  .botones-factura {
+    display: none;
+  }
+  
+  .factura {
+    box-shadow: none;
+    border: none;
+  }
+}
+
+/* Scrollbar personalizada */
+.panel-comidas::-webkit-scrollbar,
+.lista-carrito::-webkit-scrollbar,
+.vista-detalle::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-comidas::-webkit-scrollbar-track,
+.lista-carrito::-webkit-scrollbar-track,
+.vista-detalle::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 3px;
+}
+
+.panel-comidas::-webkit-scrollbar-thumb,
+.lista-carrito::-webkit-scrollbar-thumb,
+.vista-detalle::-webkit-scrollbar-thumb {
+  background: #ff4500;
+  border-radius: 3px;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .titulo h1 {
+    font-size: 40px;
+    letter-spacing: 10px;
+  }
+  
+  .titulo h3 {
+    font-size: 1rem;
+    letter-spacing: 3px;
+  }
+  
+  .con-carrito .panel-comidas {
+    flex: 6;
+  }
+  
+  .panel-carrito {
+    flex: 4;
+  }
+  
+  .info-carrito h4 {
+    font-size: 0.75rem;
+  }
+  
+  .precio-item {
+    font-size: 0.7rem;
+  }
+  
+  .imagen-comida {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .item-comida {
+    flex-wrap: wrap;
+  }
+  
+  .precio-comida {
+    margin-left: auto;
+  }
+}
+</style>
