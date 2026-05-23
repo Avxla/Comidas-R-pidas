@@ -676,11 +676,19 @@ html, body, #app {
 
 .menu {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); 
-  grid-template-rows: repeat(3, 1fr); 
   gap: 10px;
   flex: 1;
   min-height: 0;
+}
+ @media (min-width: 1000px) and (max-width: 1500px) {  
+  .menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+ }
 }
 
 .ficha {
@@ -693,6 +701,7 @@ html, body, #app {
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   height: 300px;
+  width: 100%;
 }
 
 .ficha:active {
@@ -708,6 +717,7 @@ html, body, #app {
   height: 100%;
   object-fit: cover; 
   object-position: center;
+  align-items: center;
   z-index: 1; 
 }
 
@@ -1231,6 +1241,195 @@ html, body, #app {
   
   .precio-comida {
     margin-left: auto;
+  }
+  
+}
+ /* =========================================
+   Responsividad: Celulares Pequeños (300px a 450px)
+   ========================================= */
+@media (min-width: 300px) and (max-width: 500px) {
+  .titulo {
+    height: 10vh;
+  }
+
+  .titulo h1 {
+    font-size: 32px;
+    letter-spacing: 5px;
+  }
+
+  .titulo h3 {
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+  }
+
+  /* Cambiamos la disposición a vertical */
+  .contenedor-principal {
+    flex-direction: column;
+  }
+
+  /* Dividimos la pantalla: Menú arriba, Carrito abajo */
+  .con-carrito .panel-comidas {
+    flex: 1;
+    max-height: 55%;
+  }
+
+  .panel-carrito {
+    flex: 1;
+    max-height: 45%;
+    border-radius: 12px 12px 0 0; /* Borde redondeado arriba */
+  }
+
+  .menu {
+    
+    gap: 8px;
+  }
+
+  /* Reducimos dramáticamente la altura para que se vean */
+  .ficha {
+    height: 160px;
+  }
+
+  .cabecera-detalle h2 {
+    font-size: 1.2rem;
+  }
+
+  .btn-volver {
+    font-size: 14px;
+    padding: 6px 10px;
+    letter-spacing: 1px;
+  }
+
+  /* Reducimos los items de comida */
+  .imagen-comida {
+    width: 65px;
+    height: 65px;
+  }
+
+  .item-comida {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .info-comida h3 {
+    font-size: 1rem;
+  }
+
+  .info-comida p {
+    font-size: 0.75rem;
+  }
+
+  .precio-comida span {
+    font-size: 0.9rem;
+    padding: 3px 8px;
+  }
+
+  .btn-agregar {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+  }
+
+  /* Ajustes del carrito */
+  .info-carrito h4 {
+    font-size: 0.8rem;
+  }
+
+  .precio-item {
+    font-size: 0.75rem;
+  }
+}
+
+/* =========================================
+   Responsividad: Celulares Medianos/Grandes (451px a 600px)
+   ========================================= */
+@media (min-width: 501px) and (max-width: 999px) {
+  .titulo {
+    height: 12vh;
+  }
+
+  .titulo h1 {
+    font-size: 45px;
+    letter-spacing: 8px;
+  }
+
+  .titulo h3 {
+    font-size: 1rem;
+    letter-spacing: 3px;
+  }
+
+  /* También mantenemos la disposición vertical aquí para mejor lectura */
+  .contenedor-principal {
+    flex-direction: column;
+  }
+
+  .con-carrito .panel-comidas {
+    flex: 1;
+    max-height: 60%;
+  }
+
+  .panel-carrito {
+    flex: 1;
+    max-height: 40%;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .menu {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  }
+
+  .ficha {
+  position: relative; 
+  display: flex;
+  justify-content: center; 
+  align-items: center;
+  border: 2px solid #ff4500;
+  border-radius: 12px; 
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 300px;
+  }
+
+  .cabecera-detalle h2 {
+    font-size: 1.4rem;
+  }
+
+  .btn-volver {
+    font-size: 16px;
+    padding: 8px 12px;
+    letter-spacing: 2px;
+  }
+
+  .imagen-comida {
+    width: 80px;
+    height: 80px;
+  }
+
+  .item-comida {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .info-comida h3 {
+    font-size: 1.1rem;
+  }
+
+  .info-comida p {
+    font-size: 0.85rem;
+  }
+
+  .precio-comida span {
+    font-size: 1.1rem;
+  }
+  
+  .info-carrito h4 {
+    font-size: 0.9rem;
+  }
+
+  .precio-item {
+    font-size: 0.85rem;
   }
 }
 </style>
