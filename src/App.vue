@@ -679,7 +679,7 @@ const imprimirFactura = () => {
       </style>
     </head>
     <body>
-      \${contenido.outerHTML}
+      ${contenido.outerHTML}
       <script>
         window.onload = () => {
           window.print();
