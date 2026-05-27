@@ -5,8 +5,61 @@
     <h3>COMBAT FLAVOR</h3>
   </div>
 
+<div class="barra-admin">
+ <button class="btn-admin" @click="alternarPanel">
+  {{ mostrarFormulario ? '✖ Cerrar Panel' : '➕ Agregar Producto' }}
+</button>
+</div>
+
+<div v-if="mostrarFormulario" class="panel-admin">
+  <h2>{{ editandoIndex !== null ? '✏️ Editar Producto' : 'Panel Administrativo' }}</h2>
+
+  <div class="form-grid">
+    <input
+      v-model="nuevoProducto.nombre"
+      type="text"
+      placeholder="Nombre"
+    >
+
+    <input
+      v-model="nuevoProducto.precio"
+      type="number"
+      placeholder="Precio"
+    >
+
+    <select v-model="nuevoProducto.categoria" :disabled="editandoIndex !== null">
+      <option value="hamburguesas">Hamburguesas</option>
+      <option value="perros">Perros</option>
+      <option value="salchipapas">Salchipapas</option>
+      <option value="choripapas">Choripapas</option>
+      <option value="infantil">Infantil</option>
+      <option value="adicionales">Adicionales</option>
+    </select>
+
+    <input
+      v-model="nuevoProducto.descripcion"
+      type="text"
+      placeholder="Descripción"
+    >
+
+    <input
+      v-model="nuevoProducto.imagen"
+      type="text"
+      placeholder="URL Imagen"
+    >
+
+    <div class="acciones-form">
+      <button class="btn-guardar" @click="guardarCambios">
+        {{ editandoIndex !== null ? 'Actualizar Producto' : 'Guardar Producto' }}
+      </button>
+      <button v-if="editandoIndex !== null" class="btn-cancelar" @click="cancelarEdicion">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
   <div class="contenedor-principal" :class="{ 'con-carrito': carritoItems.length > 0 }">
-    <!-- Panel izquierdo: Menú/Comidas (80% o 100% si no hay carrito) -->
     <div class="panel-comidas">
       <div v-if="vistaActual === 'menu'" class="menu">
         <div class="ficha" @click="abrirCategoria('hamburguesas')">
@@ -44,7 +97,13 @@
             <div class="info-comida">
               <h3>{{ item.nombre }}</h3>
               <p>{{ item.descripcion }}</p>
+              
+              <div class="controles-admin-item">
+                <button class="btn-item-editar" @click="prepararEdicion(item, index)">✏️ Editar</button>
+                <button class="btn-item-eliminar" @click="eliminarProducto(index)">🗑️ Eliminar</button>
+              </div>
             </div>
+            
             <div class="precio-comida">
               <span>{{ formatearPrecio(item.precio) }}</span>
               <button class="btn-agregar" @click="agregarAlCarrito(item)">+</button>
@@ -54,7 +113,6 @@
       </div>
     </div>
 
-    <!-- Panel derecho: Carrito (20%, solo visible cuando hay items) -->
     <div v-if="carritoItems.length > 0" class="panel-carrito">
       <div class="cabecera-carrito">
         <h2 class="titulo-carrito">MI PEDIDO</h2>
@@ -78,18 +136,15 @@
     </div>
   </div>
 
-  <!-- Modal de factura para impresión -->
   <div v-if="mostrarFactura" class="modal-factura" @click.self="cerrarFactura">
     <div class="contenido-factura">
       <div class="factura">
-        <!-- Cabecera de factura -->
         <div class="factura-header">
           <h2>BRAWLERS</h2>
           <p>COMBAT FLAVOR</p>
           <p class="factura-fecha">{{ obtenerFechaHora() }}</p>
         </div>
 
-        <!-- Detalle del pedido -->
         <div class="factura-detalle">
           <table class="tabla-factura">
             <thead>
@@ -111,7 +166,6 @@
           </table>
         </div>
 
-        <!-- Totales -->
         <div class="factura-totales">
           <div class="linea-total">
             <span>SUBTOTAL:</span>
@@ -127,14 +181,12 @@
           </div>
         </div>
 
-        <!-- Footer de factura -->
         <div class="factura-footer">
           <p>¡Gracias por tu compra!</p>
           <p class="factura-legal">Este documento es una factura válida</p>
         </div>
       </div>
 
-      <!-- Botones de acción -->
       <div class="botones-factura">
         <button class="btn-cerrar-factura" @click="cerrarFactura">✖ CERRAR</button>
         <button class="btn-imprimir-factura" @click="imprimirFactura">🖨️ IMPRIMIR</button>
@@ -145,9 +197,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 
-// Imports de imágenes de categorías (logos)
+// Imports de imágenes de categorías
 import hamburguesaImg from './assets/Hamburguesas.png';
 import Perros from './assets/Perros.png';
 import Salchipapas from './assets/Salchipapas.png';
@@ -159,8 +211,21 @@ const vistaActual = ref('menu');
 const categoriaSeleccionada = ref(''); 
 const carritoItems = ref([]);
 const mostrarFactura = ref(false);
+const mostrarFormulario = ref(false);
 
-const menuData = {
+// Índice auxiliar para saber qué producto editamos (null significa que estamos creando uno nuevo)
+const editandoIndex = ref(null);
+
+const nuevoProducto = ref({
+  nombre: '',
+  descripcion: '',
+  precio: '',
+  imagen: '',
+  categoria: 'hamburguesas'
+});
+
+// Convertimos menuData en un objeto reactivo con reactive() para asegurar que Vue detecte los cambios internos de edición y eliminación.
+const menuData = reactive({
   hamburguesas: [
     { 
       nombre: "The Pit Burger", 
@@ -353,7 +418,97 @@ const menuData = {
       imagen: "https://tse4.mm.bing.net/th/id/OIP.SLj1H4UdGTrtLZccwuB59wHaHQ?rs=1&pid=ImgDetMain&o=7&rm=3"
     }
   ]
+});
+
+// Nueva función para el botón principal del panel
+const alternarPanel = () => {
+  if (mostrarFormulario.value) {
+    // Si está abierto, aprovechamos y limpiamos los campos al cerrar
+    cancelarEdicion();
+  } else {
+    // Si está cerrado, simplemente lo abrimos en modo creación
+    mostrarFormulario.value = true;
+  }
 };
+
+// Tu función cancelarEdicion optimizada
+const cancelarEdicion = () => {
+  editandoIndex.value = null;
+  nuevoProducto.value = {
+    nombre: '',
+    descripcion: '',
+    precio: '',
+    imagen: '',
+    categoria: categoriaSeleccionada.value || 'hamburguesas'
+  };
+  // Aseguramos el cierre definitivo
+  mostrarFormulario.value = false; 
+};
+
+// Función centralizada para Guardar o Actualizar
+const guardarCambios = () => {
+  if (
+    !nuevoProducto.value.nombre ||
+    !nuevoProducto.value.precio ||
+    !nuevoProducto.value.descripcion ||
+    !nuevoProducto.value.imagen
+  ) {
+    alert('Completa todos los campos');
+    return;
+  }
+
+  if (editandoIndex.value !== null) {
+    // Modo Edición: Sobrescribimos el item usando el índice guardado
+    menuData[nuevoProducto.value.categoria][editandoIndex.value] = {
+      nombre: nuevoProducto.value.nombre,
+      descripcion: nuevoProducto.value.descripcion,
+      precio: Number(nuevoProducto.value.precio),
+      imagen: nuevoProducto.value.imagen
+    };
+    alert('Producto actualizado correctamente');
+  } else {
+    // Modo Creación: Añadimos un ítem nuevo
+    menuData[nuevoProducto.value.categoria].push({
+      nombre: nuevoProducto.value.nombre,
+      descripcion: nuevoProducto.value.descripcion,
+      precio: Number(nuevoProducto.value.precio),
+      imagen: nuevoProducto.value.imagen
+    });
+    alert('Producto agregado correctamente');
+  }
+
+  cancelarEdicion();
+};
+
+// Carga el producto seleccionado en el formulario
+const prepararEdicion = (item, index) => {
+  editandoIndex.value = index;
+  nuevoProducto.value = {
+    nombre: item.nombre,
+    descripcion: item.descripcion,
+    precio: item.precio,
+    imagen: item.imagen,
+    categoria: categoriaSeleccionada.value // Esto mantiene el select sincronizado
+  };
+  mostrarFormulario.value = true;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// Elimina el producto usando el índice de la categoría activa
+const eliminarProducto = (index) => {
+  const productoNombre = menuData[categoriaSeleccionada.value][index].nombre;
+  if (confirm(`¿Estás seguro de que deseas eliminar "${productoNombre}"?`)) {
+    menuData[categoriaSeleccionada.value].splice(index, 1);
+    
+    // Si se estaba editando ese mismo producto, cancelamos la edición
+    if (editandoIndex.value === index) {
+      cancelarEdicion();
+    }
+    alert('Producto eliminado');
+  }
+};
+
+
 
 const formatearPrecio = (precio) => {
   return `$${precio.toLocaleString()}`;
@@ -524,7 +679,7 @@ const imprimirFactura = () => {
       </style>
     </head>
     <body>
-      ${contenido.outerHTML}
+      \${contenido.outerHTML}
       <script>
         window.onload = () => {
           window.print();
@@ -594,6 +749,99 @@ html, body, #app {
   letter-spacing: 5px;
   text-transform: uppercase;
   margin: 0;
+}
+
+/* ESTILOS DEL PANEL ADMIN ACTUALIZADO */
+.panel-admin {
+  background-color: #1a1a1a;
+  border: 2px dashed #ff4500;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+.panel-admin h2 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  text-shadow: 0 0 5px #ff4500;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: center;
+}
+.form-grid input, .form-grid select {
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #ff4500;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: sans-serif;
+}
+.acciones-form {
+  display: flex;
+  gap: 10px;
+}
+.btn-guardar {
+  background-color: #ff4500;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-cancelar {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.barra-admin {
+  margin-bottom: 10px;
+}
+.btn-admin {
+  background-color: #111;
+  color: #ff4500;
+  border: 2px solid #ff4500;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+/* NUEVOS CONTROLES PARA LOS PLATOS INDIVIDUALES */
+.controles-admin-item {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.btn-item-editar {
+  background-color: #ffc107;
+  color: #000;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: sans-serif;
+  font-size: 0.8rem;
+}
+.btn-item-eliminar {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: sans-serif;
+  font-size: 0.8rem;
 }
 
 .contenedor-principal {
@@ -678,17 +926,6 @@ html, body, #app {
   display: grid;
   gap: 10px;
   flex: 1;
-  min-height: 0;
-}
- @media (min-width: 1000px) and (max-width: 1500px) {  
-  .menu {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  gap: 10px;
-  flex: 1;
-  min-height: 0;
- }
 }
 
 .ficha {
@@ -820,6 +1057,8 @@ html, body, #app {
 }
 
 .info-comida {
+  display: flex;
+  flex-direction: column;
   flex: 1;
 }
 
@@ -853,7 +1092,6 @@ html, body, #app {
   white-space: nowrap;
   font-family: monospace;
 }
-
 
 .btn-agregar {
   background-color: #28a745;
@@ -959,7 +1197,7 @@ html, body, #app {
   transform: scale(0.98);
 }
 
-/* Estilos del modal de factura */
+/* Modal factura */
 .modal-factura {
   position: fixed;
   top: 0;
@@ -1001,7 +1239,6 @@ html, body, #app {
   }
 }
 
-/* Estilos NEUTROS de la factura (para impresión) */
 .factura {
   background: white;
   color: #000000;
@@ -1120,7 +1357,6 @@ html, body, #app {
   margin-top: 5px;
 }
 
-/* Botones del modal */
 .botones-factura {
   display: flex;
   gap: 10px;
@@ -1159,7 +1395,6 @@ html, body, #app {
   background-color: #218838;
 }
 
-/* Estilos para impresión */
 @media print {
   .modal-factura {
     position: static;
@@ -1181,7 +1416,6 @@ html, body, #app {
   }
 }
 
-/* Scrollbar personalizada */
 .panel-comidas::-webkit-scrollbar,
 .lista-carrito::-webkit-scrollbar,
 .vista-detalle::-webkit-scrollbar {
@@ -1202,7 +1436,6 @@ html, body, #app {
   border-radius: 3px;
 }
 
-/* Responsive para móviles */
 @media (max-width: 768px) {
   .titulo h1 {
     font-size: 40px;
@@ -1242,7 +1475,6 @@ html, body, #app {
   .precio-comida {
     margin-left: auto;
   }
-  
 }
  /* =========================================
    Responsividad: Celulares Pequeños (300px a 450px)
@@ -1339,9 +1571,17 @@ html, body, #app {
   }
 }
 
-/* =========================================
-   Responsividad: Celulares Medianos/Grandes (451px a 600px)
-   ========================================= */
+ @media (min-width: 1000px) and (max-width: 2000px) {  
+  .menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+ }
+}
+
 @media (min-width: 501px) and (max-width: 999px) {
   .titulo {
     height: 12vh;
@@ -1430,6 +1670,89 @@ html, body, #app {
 
   .precio-item {
     font-size: 0.85rem;
+  }
+}
+/* =========================
+   PANEL ADMIN
+========================= */
+
+.barra-admin {
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.btn-admin {
+  width: 100%;
+  padding: 16px;
+  background: #ff4500;
+  border: none;
+  border-radius: 15px;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-admin:hover {
+  background: #ff4500;
+}
+
+.panel-admin {
+  width: 100%;
+  background: #050505;
+  border: 1px solid #ff4500;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+.panel-admin h2 {
+  color: white;
+  margin-bottom: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 15px;
+  align-items: center;
+}
+
+.form-grid input,
+.form-grid select {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 14px;
+  color: white;
+  outline: none;
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+  border-color: #ff4500;
+}
+
+.btn-guardar {
+  background: #ff4500;
+  border: none;
+  color: white;
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.btn-guardar:hover {
+  background: #ff4500;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
