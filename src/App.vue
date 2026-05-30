@@ -59,7 +59,18 @@
   </div>
 </div>
 
-  <div class="contenedor-principal" :class="{ 'con-carrito': carritoItems.length > 0 }">
+<div class="barra-carrito">
+  <button class="btn-carrito" @click="alternarCarrito">
+    🛒 Carrito ({{ carritoItems.length }})
+  </button>
+</div>
+
+  <div
+  class="contenedor-principal"
+  :class="{
+    'con-carrito': carritoItems.length > 0 && !mostrarCarrito
+  }"
+>
     <div class="panel-comidas">
       <div v-if="vistaActual === 'menu'" class="menu">
         <div class="ficha" @click="abrirCategoria('hamburguesas')">
@@ -113,28 +124,71 @@
       </div>
     </div>
 
-    <div v-if="carritoItems.length > 0" class="panel-carrito">
-      <div class="cabecera-carrito">
-        <h2 class="titulo-carrito">MI PEDIDO</h2>
-        <button class="btn-cerrar-carrito" @click="vaciarCarrito">🗑️</button>
-      </div>
+       
+<div v-if="mostrarCarrito" class="modal-carrito">
+  <div class="panel-carrito-full">
 
-      <div class="lista-carrito">
-        <div class="item-carrito" v-for="(item, idx) in carritoItems" :key="idx">
-          <div class="info-carrito">
-            <h4>{{ item.nombre }}</h4>
-            <p class="precio-item">{{ formatearPrecio(item.precio) }}</p>
-          </div>
-          <button class="btn-eliminar" @click="eliminarDelCarrito(idx)">✖</button>
-        </div>
-      </div>
+    <div class="cabecera-carrito">
+      <h2 class="titulo-carrito">MI PEDIDO</h2>
 
-      <div class="total-carrito">
-        <h3>Total: {{ formatearPrecio(calcularTotal()) }}</h3>
-        <button class="btn-confirmar" @click="confirmarPedido">✅ CONFIRMAR</button>
+      <div>
+        <button
+          class="btn-cerrar-carrito"
+          @click="mostrarCarrito = false"
+        >
+          ✖
+        </button>
+
+        <button
+          class="btn-cerrar-carrito"
+          @click="vaciarCarrito"
+        >
+          🗑️
+        </button>
       </div>
     </div>
+
+    <div class="lista-carrito">
+      <div
+        class="item-carrito"
+        v-for="(item, idx) in carritoItems"
+        :key="idx"
+      >
+        <div class="info-carrito">
+          <h4>{{ item.nombre }}</h4>
+          <p class="precio-item">
+            {{ formatearPrecio(item.precio) }}
+          </p>
+        </div>
+
+        <button
+          class="btn-eliminar"
+          @click="eliminarDelCarrito(idx)"
+        >
+          ✖
+        </button>
+      </div>
+    </div>
+
+    <!-- TOTAL DENTRO DEL PANEL -->
+    <div class="total-carrito">
+      <h3>
+        Total: {{ formatearPrecio(calcularTotal()) }}
+      </h3>
+
+      <button
+        class="btn-confirmar"
+        @click="confirmarPedido"
+      >
+        ✅ CONFIRMAR
+      </button>
+    </div>
+  
+
   </div>
+</div>
+</div>
+
 
   <div v-if="mostrarFactura" class="modal-factura" @click.self="cerrarFactura">
     <div class="contenido-factura">
@@ -210,8 +264,15 @@ import Adicionales from './assets/Adicionales.png';
 const vistaActual = ref('menu'); 
 const categoriaSeleccionada = ref(''); 
 const carritoItems = ref([]);
+const mostrarCarrito = ref(false);
 const mostrarFactura = ref(false);
 const mostrarFormulario = ref(false);
+const alternarCarrito = () => {
+  mostrarCarrito.value = !mostrarCarrito.value;
+};
+const agregarAlCarrito = (item) => {
+  carritoItems.value.push({ ...item });
+};
 
 // Índice auxiliar para saber qué producto editamos (null significa que estamos creando uno nuevo)
 const editandoIndex = ref(null);
@@ -524,9 +585,7 @@ const volverAlMenu = () => {
   categoriaSeleccionada.value = '';
 };
 
-const agregarAlCarrito = (item) => {
-  carritoItems.value.push({ ...item });
-};
+
 
 const eliminarDelCarrito = (index) => {
   carritoItems.value.splice(index, 1);
@@ -543,6 +602,7 @@ const calcularTotal = () => {
 };
 
 const confirmarPedido = () => {
+  mostrarCarrito.value = false;
   mostrarFactura.value = true;
 };
 
@@ -1502,7 +1562,6 @@ html, body, #app {
   /* Dividimos la pantalla: Menú arriba, Carrito abajo */
   .con-carrito .panel-comidas {
     flex: 1;
-    max-height: 55%;
   }
 
   .panel-carrito {
@@ -1583,9 +1642,7 @@ html, body, #app {
 }
 
 @media (min-width: 501px) and (max-width: 999px) {
-  .titulo {
-    height: 12vh;
-  }
+
 
   .titulo h1 {
     font-size: 45px;
@@ -1604,12 +1661,12 @@ html, body, #app {
 
   .con-carrito .panel-comidas {
     flex: 1;
-    max-height: 60%;
+  
   }
 
   .panel-carrito {
     flex: 1;
-    max-height: 40%;
+ 
     border-radius: 12px 12px 0 0;
   }
 
@@ -1754,5 +1811,212 @@ html, body, #app {
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+.barra-carrito {
+  margin-bottom: 15px;
+}
+
+.btn-carrito {
+  width: 100%;
+  padding: 15px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-carrito:hover {
+  background: #218838;
+}
+.carrito-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.carrito-fullscreen .panel-carrito {
+  width: 95%;
+  height: 95%;
+  max-width: none;
+  max-height: none;
+  flex: none;
+  border-radius: 20px;
+  border: 2px solid #ff4500;
+}
+/* =========================
+   MODAL CARRITO FULLSCREEN
+========================= */
+
+.modal-carrito {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.95);
+  backdrop-filter: blur(6px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  animation: fadeCarrito .25s ease;
+}
+
+.panel-carrito-full {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+
+  background: linear-gradient(
+    135deg,
+    #111 0%,
+    #050505 100%
+  );
+
+  border: 2px solid #ff4500;
+  border-radius: 25px;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 0 40px rgba(255,69,0,.5),
+    0 0 80px rgba(255,69,0,.2);
+}
+.modal-carrito {
+  padding: 0;
+}
+
+@keyframes fadeCarrito {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* CABECERA */
+
+.panel-carrito-full .cabecera-carrito {
+  padding: 20px;
+  background: #ff4500;
+}
+
+.panel-carrito-full .titulo-carrito {
+  font-size: 2rem;
+  letter-spacing: 4px;
+}
+
+/* LISTA */
+
+.panel-carrito-full .lista-carrito {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.panel-carrito-full .item-carrito {
+  padding: 18px;
+  margin-bottom: 12px;
+  border-radius: 15px;
+  background: #1d1d1d;
+}
+
+.panel-carrito-full .info-carrito h4 {
+  font-size: 1.2rem;
+}
+
+.panel-carrito-full .precio-item {
+  font-size: 1rem;
+}
+
+/* TOTAL */
+
+.panel-carrito-full .total-carrito {
+  padding: 25px;
+}
+
+.panel-carrito-full .total-carrito h3 {
+  font-size: 1.8rem;
+}
+
+.panel-carrito-full .btn-confirmar {
+  height: 60px;
+  font-size: 1.1rem;
+}
+
+/* RESPONSIVE TABLET */
+
+@media (max-width: 900px) {
+
+  .panel-carrito-full {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .panel-carrito-full .titulo-carrito {
+    font-size: 1.5rem;
+  }
+
+  .panel-carrito-full .total-carrito h3 {
+    font-size: 1.4rem;
+  }
+}
+
+/* RESPONSIVE CELULAR */
+
+@media (max-width: 600px) {
+
+  .panel-carrito-full .cabecera-carrito {
+    padding: 15px;
+  }
+
+  .panel-carrito-full .titulo-carrito {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+  }
+
+  .panel-carrito-full .item-carrito {
+    padding: 12px;
+  }
+
+  .panel-carrito-full .info-carrito h4 {
+    font-size: .95rem;
+  }
+
+  .panel-carrito-full .precio-item {
+    font-size: .85rem;
+  }
+
+  .panel-carrito-full .btn-confirmar {
+    height: 55px;
+    font-size: 1rem;
+  }
+}
+.panel-carrito-full {
+  display: flex;
+  flex-direction: column;
+}
+
+.lista-carrito {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.total-carrito {
+  flex-shrink: 0;
 }
 </style>
