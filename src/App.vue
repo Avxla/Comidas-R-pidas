@@ -251,9 +251,13 @@
 </div>
 </template>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script setup>
 import { ref, reactive } from 'vue'
 import Swal from 'sweetalert2'
+  import Swal from 'sweetalert2/dist/sweetalert2.js'
+import 'sweetalert2/src/sweetalert2.scss'
 
 // Imports de imágenes de categorías
 import hamburguesaImg from './assets/Hamburguesas.png';
