@@ -255,8 +255,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import Swal from 'sweetalert2'
-import 'sweetalert2/src/sweetalert2.scss'
+import Swal from 'https://cdn.jsdelivr.net/npm/sweetalert2@11/+esm'
 
 // Imports de imágenes de categorías
 import hamburguesaImg from './assets/Hamburguesas.png';
