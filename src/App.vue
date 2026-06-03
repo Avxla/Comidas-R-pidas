@@ -753,31 +753,7 @@ if (result.isConfirmed) {
   return;
 }
 
-  const result = await Swal.fire({
-    title: "Confirmar pedido",
-    text: `Total a pagar: ${formatearPrecio(calcularTotal())}`,
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonColor: "#28a745",
-    cancelButtonColor: "#d33",
-    confirmButtonText: "Confirmar",
-    cancelButtonText: "Cancelar"
-  });
 
-if (result.isConfirmed) {
-
-  mostrarCarrito.value = false;
-
-  setTimeout(() => {
-    mostrarFactura.value = true;
-  }, 100);
-
-  Swal.fire({
-    icon: "success",
-    title: "Pedido confirmado",
-    text: "La factura fue generada correctamente."
-  });
-}
 const obtenerFechaHora = () => {
   const ahora = new Date();
   return ahora.toLocaleString('es-CO', {
