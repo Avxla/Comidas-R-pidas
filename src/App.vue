@@ -752,6 +752,7 @@ if (result.isConfirmed) {
 
   return;
 }
+}
 
 
 const obtenerFechaHora = () => {
