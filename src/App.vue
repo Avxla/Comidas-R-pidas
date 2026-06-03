@@ -126,7 +126,10 @@
     </div>
 
        
-<div v-if="mostrarCarrito" class="modal-carrito">
+<div
+  v-if="mostrarCarrito && !mostrarFactura"
+  class="modal-carrito"
+>
   <div class="panel-carrito-full">
 
     <div class="cabecera-carrito">
@@ -724,6 +727,36 @@ const confirmarPedido = async () => {
     });
     return;
   }
+
+  const result = await Swal.fire({
+    title: "Confirmar pedido",
+    text: `Total a pagar: ${formatearPrecio(calcularTotal())}`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#28a745",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Confirmar",
+    cancelButtonText: "Cancelar"
+  });
+
+  if (result.isConfirmed) {
+
+    // Cerrar carrito
+    mostrarCarrito.value = false;
+
+    // Esperar un instante para que Vue actualice la vista
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Mostrar factura
+    mostrarFactura.value = true;
+
+    Swal.fire({
+      icon: "success",
+      title: "Pedido confirmado",
+      text: "La factura fue generada correctamente."
+    });
+  }
+};
 
   const result = await Swal.fire({
     title: "Confirmar pedido",
