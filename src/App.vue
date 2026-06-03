@@ -256,7 +256,6 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import Swal from 'sweetalert2'
-  import Swal from 'sweetalert2/dist/sweetalert2.js'
 import 'sweetalert2/src/sweetalert2.scss'
 
 // Imports de imágenes de categorías
