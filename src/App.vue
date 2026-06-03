@@ -183,12 +183,15 @@
         Total: {{ formatearPrecio(calcularTotal()) }}
       </h3>
 
-      <button
-        class="btn-confirmar"
-        @click="confirmarPedido"
-      >
-        ✅ CONFIRMAR
-      </button>
+     <button
+  class="btn-confirmar"
+  @click="
+    mostrarCarrito = false;
+    confirmarPedido();
+  "
+>
+  ✅ CONFIRMAR
+</button>
     </div>
   
 
@@ -739,24 +742,16 @@ const confirmarPedido = async () => {
     cancelButtonText: "Cancelar"
   });
 
-  if (result.isConfirmed) {
+if (result.isConfirmed) {
 
-    // Cerrar carrito
-    mostrarCarrito.value = false;
+  // cerrar carrito inmediatamente
+  mostrarCarrito.value = false;
 
-    // Esperar un instante para que Vue actualice la vista
-    await new Promise(resolve => setTimeout(resolve, 100));
+  // abrir factura
+  mostrarFactura.value = true;
 
-    // Mostrar factura
-    mostrarFactura.value = true;
-
-    Swal.fire({
-      icon: "success",
-      title: "Pedido confirmado",
-      text: "La factura fue generada correctamente."
-    });
-  }
-};
+  return;
+}
 
   const result = await Swal.fire({
     title: "Confirmar pedido",
