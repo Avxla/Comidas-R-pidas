@@ -156,10 +156,13 @@
         :key="idx"
       >
         <div class="info-carrito">
-          <h4>{{ item.nombre }}</h4>
-          <p class="precio-item">
-            {{ formatearPrecio(item.precio) }}
-          </p>
+         <h4>
+  {{ item.nombre }} x {{ item.cantidad }}
+</h4>
+
+<p class="precio-item">
+  {{ formatearPrecio(item.precio * item.cantidad) }}
+</p>
         </div>
 
         <button
@@ -211,12 +214,21 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, idx) in carritoItems" :key="idx">
-                <td class="cantidad">1</td>
-                <td class="producto">{{ item.nombre }}</td>
-                <td class="precio">{{ formatearPrecio(item.precio) }}</td>
-                <td class="total">{{ formatearPrecio(item.precio) }}</td>
-              </tr>
+             <tr v-for="(item, idx) in carritoItems" :key="idx">
+  <td class="cantidad">{{ item.cantidad }}</td>
+
+  <td class="producto">
+    {{ item.nombre }}
+  </td>
+
+  <td class="precio">
+    {{ formatearPrecio(item.precio) }}
+  </td>
+
+  <td class="total">
+    {{ formatearPrecio(item.precio * item.cantidad) }}
+  </td>
+</tr>
             </tbody>
           </table>
         </div>
@@ -275,7 +287,19 @@ const alternarCarrito = () => {
   mostrarCarrito.value = !mostrarCarrito.value;
 };
 const agregarAlCarrito = (item) => {
-  carritoItems.value.push({ ...item });
+
+  const productoExistente = carritoItems.value.find(
+    p => p.nombre === item.nombre
+  );
+
+  if (productoExistente) {
+    productoExistente.cantidad++;
+  } else {
+    carritoItems.value.push({
+      ...item,
+      cantidad: 1
+    });
+  }
 
   Swal.fire({
     position: "top-end",
@@ -634,14 +658,19 @@ const volverAlMenu = () => {
 
 
 const eliminarDelCarrito = (index) => {
-  const nombre = carritoItems.value[index].nombre;
 
-  carritoItems.value.splice(index, 1);
+  const producto = carritoItems.value[index];
+
+  if (producto.cantidad > 1) {
+    producto.cantidad--;
+  } else {
+    carritoItems.value.splice(index, 1);
+  }
 
   Swal.fire({
     icon: "info",
     title: "Producto eliminado",
-    text: `${nombre} fue retirado del carrito.`,
+    text: `${producto.nombre} fue retirado del carrito.`,
     timer: 1500,
     showConfirmButton: false
   });
@@ -679,7 +708,10 @@ const vaciarCarrito = async () => {
 };
 
 const calcularTotal = () => {
-  return carritoItems.value.reduce((sum, item) => sum + item.precio, 0);
+  return carritoItems.value.reduce(
+    (sum, item) => sum + (item.precio * item.cantidad),
+    0
+  );
 };
 
 const confirmarPedido = async () => {
