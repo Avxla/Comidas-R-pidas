@@ -1,4 +1,5 @@
 <template>
+
 <div class="contenedor-pagina">
   <div class="titulo">
     <h1>Brawlers</h1>
@@ -252,6 +253,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+import Swal from 'sweetalert2'
 
 // Imports de imágenes de categorías
 import hamburguesaImg from './assets/Hamburguesas.png';
@@ -272,6 +274,14 @@ const alternarCarrito = () => {
 };
 const agregarAlCarrito = (item) => {
   carritoItems.value.push({ ...item });
+
+  Swal.fire({
+    position: "top-end",
+    icon: "success",
+    title: `${item.nombre} agregado al carrito`,
+    showConfirmButton: false,
+    timer: 1500
+  });
 };
 
 // Índice auxiliar para saber qué producto editamos (null significa que estamos creando uno nuevo)
@@ -514,28 +524,45 @@ const guardarCambios = () => {
     !nuevoProducto.value.descripcion ||
     !nuevoProducto.value.imagen
   ) {
-    alert('Completa todos los campos');
+    Swal.fire({
+      icon: "warning",
+      title: "Campos incompletos",
+      text: "Debes completar todos los campos."
+    });
     return;
   }
 
   if (editandoIndex.value !== null) {
-    // Modo Edición: Sobrescribimos el item usando el índice guardado
     menuData[nuevoProducto.value.categoria][editandoIndex.value] = {
       nombre: nuevoProducto.value.nombre,
       descripcion: nuevoProducto.value.descripcion,
       precio: Number(nuevoProducto.value.precio),
       imagen: nuevoProducto.value.imagen
     };
-    alert('Producto actualizado correctamente');
+
+    Swal.fire({
+      icon: "success",
+      title: "Producto actualizado",
+      text: "Los cambios fueron guardados correctamente.",
+      timer: 2000,
+      showConfirmButton: false
+    });
+
   } else {
-    // Modo Creación: Añadimos un ítem nuevo
     menuData[nuevoProducto.value.categoria].push({
       nombre: nuevoProducto.value.nombre,
       descripcion: nuevoProducto.value.descripcion,
       precio: Number(nuevoProducto.value.precio),
       imagen: nuevoProducto.value.imagen
     });
-    alert('Producto agregado correctamente');
+
+    Swal.fire({
+      icon: "success",
+      title: "Producto agregado",
+      text: "El producto fue agregado al menú.",
+      timer: 2000,
+      showConfirmButton: false
+    });
   }
 
   cancelarEdicion();
@@ -556,16 +583,33 @@ const prepararEdicion = (item, index) => {
 };
 
 // Elimina el producto usando el índice de la categoría activa
-const eliminarProducto = (index) => {
-  const productoNombre = menuData[categoriaSeleccionada.value][index].nombre;
-  if (confirm(`¿Estás seguro de que deseas eliminar "${productoNombre}"?`)) {
+const eliminarProducto = async (index) => {
+  const productoNombre =
+    menuData[categoriaSeleccionada.value][index].nombre;
+
+  const result = await Swal.fire({
+    title: "¿Eliminar producto?",
+    text: `Se eliminará "${productoNombre}"`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar"
+  });
+
+  if (result.isConfirmed) {
     menuData[categoriaSeleccionada.value].splice(index, 1);
-    
-    // Si se estaba editando ese mismo producto, cancelamos la edición
+
     if (editandoIndex.value === index) {
       cancelarEdicion();
     }
-    alert('Producto eliminado');
+
+    Swal.fire({
+      icon: "success",
+      title: "Producto eliminado",
+      text: "El producto fue eliminado correctamente."
+    });
   }
 };
 
@@ -588,12 +632,47 @@ const volverAlMenu = () => {
 
 
 const eliminarDelCarrito = (index) => {
+  const nombre = carritoItems.value[index].nombre;
+
   carritoItems.value.splice(index, 1);
+
+  Swal.fire({
+    icon: "info",
+    title: "Producto eliminado",
+    text: `${nombre} fue retirado del carrito.`,
+    timer: 1500,
+    showConfirmButton: false
+  });
 };
 
-const vaciarCarrito = () => {
-  if (confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
+const vaciarCarrito = async () => {
+
+  if (carritoItems.value.length === 0) {
+    Swal.fire({
+      icon: "info",
+      title: "Carrito vacío",
+      text: "No hay productos para eliminar."
+    });
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: "¿Vaciar carrito?",
+    text: "Se eliminarán todos los productos.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Sí, vaciar",
+    cancelButtonText: "Cancelar"
+  });
+
+  if (result.isConfirmed) {
     carritoItems.value = [];
+
+    Swal.fire({
+      icon: "success",
+      title: "Carrito vacío",
+      text: "Todos los productos fueron eliminados."
+    });
   }
 };
 
@@ -601,11 +680,39 @@ const calcularTotal = () => {
   return carritoItems.value.reduce((sum, item) => sum + item.precio, 0);
 };
 
-const confirmarPedido = () => {
-  mostrarCarrito.value = false;
-  mostrarFactura.value = true;
-};
+const confirmarPedido = async () => {
 
+  if (carritoItems.value.length === 0) {
+    Swal.fire({
+      icon: "error",
+      title: "Carrito vacío",
+      text: "Debes agregar productos antes de confirmar."
+    });
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: "Confirmar pedido",
+    text: `Total a pagar: ${formatearPrecio(calcularTotal())}`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#28a745",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Confirmar",
+    cancelButtonText: "Cancelar"
+  });
+
+  if (result.isConfirmed) {
+    mostrarCarrito.value = false;
+    mostrarFactura.value = true;
+
+    Swal.fire({
+      icon: "success",
+      title: "Pedido confirmado",
+      text: "La factura fue generada correctamente."
+    });
+  }
+};
 const obtenerFechaHora = () => {
   const ahora = new Date();
   return ahora.toLocaleString('es-CO', {
@@ -621,8 +728,16 @@ const cerrarFactura = () => {
 };
 
 const imprimirFactura = () => {
+    Swal.fire({
+  icon: "success",
+  title: "Factura generada",
+  text: "Se abrirá la ventana de impresión.",
+  timer: 1500,
+  showConfirmButton: false
+});
   const contenido = document.querySelector('.factura').cloneNode(true);
   const ventana = window.open('', '_blank');
+
   
   ventana.document.write(`
     <!DOCTYPE html>
