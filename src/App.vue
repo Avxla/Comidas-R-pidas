@@ -736,17 +736,20 @@ const confirmarPedido = async () => {
     cancelButtonText: "Cancelar"
   });
 
-  if (result.isConfirmed) {
-    mostrarCarrito.value = false;
-    mostrarFactura.value = true;
+if (result.isConfirmed) {
 
-    Swal.fire({
-      icon: "success",
-      title: "Pedido confirmado",
-      text: "La factura fue generada correctamente."
-    });
-  }
-};
+  mostrarCarrito.value = false;
+
+  setTimeout(() => {
+    mostrarFactura.value = true;
+  }, 100);
+
+  Swal.fire({
+    icon: "success",
+    title: "Pedido confirmado",
+    text: "La factura fue generada correctamente."
+  });
+}
 const obtenerFechaHora = () => {
   const ahora = new Date();
   return ahora.toLocaleString('es-CO', {
